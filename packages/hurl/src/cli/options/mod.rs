@@ -52,6 +52,7 @@ pub use error::CliOptionsError;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CliOptions {
     pub aws_sigv4: Option<String>,
+    pub body_hook: Option<String>,
     pub cacert_file: Option<String>,
     pub client_cert_file: Option<String>,
     pub client_key_file: Option<String>,
@@ -363,6 +364,7 @@ impl Default for CliOptions {
     fn default() -> Self {
         CliOptions {
             aws_sigv4: None,
+            body_hook: None,
             cacert_file: None,
             client_cert_file: None,
             client_key_file: None,
@@ -444,6 +446,7 @@ impl CliOptions {
         current_dir: &Path,
     ) -> Result<RunnerOptions, CliError> {
         let aws_sigv4 = self.aws_sigv4.clone();
+        let body_hook = self.body_hook.clone();
         let cacert_file = self.cacert_file.clone();
         let client_cert_file = self.client_cert_file.clone();
         let client_key_file = self.client_key_file.clone();
@@ -556,6 +559,7 @@ impl CliOptions {
 
         Ok(RunnerOptionsBuilder::new()
             .aws_sigv4(aws_sigv4)
+            .body_hook(body_hook)
             .cacert_file(cacert_file)
             .client_cert_file(client_cert_file)
             .client_key_file(client_key_file)

@@ -16,6 +16,7 @@ _hurl() {
     local context curcontext="$curcontext" state line
     _arguments "${_arguments_options[@]}" \
     '--aws-sigv4[Use AWS V4 signature authentication in the transfer]: :' \
+    '--body-hook[Run COMMAND to transform each request body before it is sent]: :' \
     '--cacert[CA certificate to verify peer against (PEM format)]: :_files' \
     '(-E --cert)'{-E,--cert}'[Client certificate file and password]: :' \
     '--key[Private key file name]: :' \

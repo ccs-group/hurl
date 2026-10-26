@@ -117,6 +117,7 @@ where
         .arg(commands::very_verbose())
         .arg(commands::verbosity())
         // Run options
+        .arg(commands::body_hook())
         .arg(commands::continue_on_error())
         .arg(commands::delay())
         .arg(commands::from_entry())
@@ -192,6 +193,7 @@ fn parse_arg_matches(
     let cacert_file = cacert_file(arg_matches, default_options.cacert_file)?;
     let client_cert_file = client_cert_file(arg_matches, default_options.client_cert_file)?;
     let client_key_file = client_key_file(arg_matches, default_options.client_key_file)?;
+    let body_hook = body_hook(arg_matches, default_options.body_hook);
     let color_stdout = color(arg_matches, default_options.color_stdout);
     let color_stderr = color(arg_matches, default_options.color_stderr);
     let compressed = compressed(arg_matches, default_options.compressed);
@@ -266,6 +268,7 @@ fn parse_arg_matches(
         cacert_file,
         client_cert_file,
         client_key_file,
+        body_hook,
         color_stdout,
         color_stderr,
         compressed,
@@ -391,6 +394,10 @@ fn client_key_file(
             }
         }
     }
+}
+
+fn body_hook(arg_matches: &ArgMatches, default_value: Option<String>) -> Option<String> {
+    get::<String>(arg_matches, "body_hook").or(default_value)
 }
 
 /// Returns true if Hurl output uses ANSI code and false otherwise.

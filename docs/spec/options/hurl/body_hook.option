@@ -1,0 +1,17 @@
+name: body_hook
+long: body-hook
+value: COMMAND
+help: Run COMMAND to transform each request body before it is sent
+help_heading: Run options
+cli_only: true
+---
+Run COMMAND to transform each request body before it is sent. COMMAND is run through the system shell (`sh -c` on Unix, `cmd /C` on Windows)
+for every request that has a body, after all templates, functions and file replacements have been evaluated. The rendered body is written
+to COMMAND standard input, and COMMAND standard output is used as the new request body. The request method and URL are available to COMMAND
+through `HURL_REQUEST_METHOD` and `HURL_REQUEST_URL` environment variables.
+
+If COMMAND exits with a non-zero status, the entry fails and COMMAND standard error is displayed.
+
+This can be used, for instance, to sign a request body containing dynamic values:
+
+    $ hurl --body-hook './sign.sh' test.hurl

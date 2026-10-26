@@ -544,6 +544,21 @@ Environment variables: HURL_VERY_VERBOSE
 
 ### Run options
 
+#### --body-hook <COMMAND> {#body-hook}
+
+Run COMMAND to transform each request body before it is sent. COMMAND is run through the system shell (`sh -c` on Unix, `cmd /C` on Windows)
+for every request that has a body, after all templates, functions and file replacements have been evaluated. The rendered body is written
+to COMMAND standard input, and COMMAND standard output is used as the new request body. The request method and URL are available to COMMAND
+through `HURL_REQUEST_METHOD` and `HURL_REQUEST_URL` environment variables.
+
+If COMMAND exits with a non-zero status, the entry fails and COMMAND standard error is displayed.
+
+This can be used, for instance, to sign a request body containing dynamic values:
+
+    $ hurl --body-hook './sign.sh' test.hurl
+
+This is a cli-only option.
+
 #### --continue-on-error {#continue-on-error}
 
 Continue executing requests to the end of the Hurl file even when an assert error occurs. By default, Hurl exits after an assert error in the HTTP response.

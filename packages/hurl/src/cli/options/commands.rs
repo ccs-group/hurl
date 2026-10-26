@@ -35,6 +35,15 @@ pub fn aws_sigv4() -> clap::Arg {
         .num_args(1)
 }
 
+pub fn body_hook() -> clap::Arg {
+    clap::Arg::new("body_hook")
+        .long("body-hook")
+        .value_name("COMMAND")
+        .help("Run COMMAND to transform each request body before it is sent")
+        .help_heading("Run options")
+        .num_args(1)
+}
+
 pub fn cacert_file() -> clap::Arg {
     clap::Arg::new("cacert_file")
         .long("cacert")

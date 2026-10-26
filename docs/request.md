@@ -732,6 +732,14 @@ replace "EUR" "{{currency}}"
 Replacements are applied in order. The replacement value is evaluated once per line, so every match of a given line is
 replaced by the same value. Within `replaceRegex`, capture groups can be referenced with `$1`, `$2` etc...
 
+If the final body has to be transformed by an external program (to compute and append a signature for instance), use
+the [`--body-hook` option]: the rendered body of each request is passed to a command on standard input, and the
+command standard output is sent as the new body.
+
+```shell
+$ hurl --body-hook 'python3 sign.py' test.hurl
+```
+
 [method]: #method
 [URL]: #url
 [headers]: #headers
@@ -753,6 +761,7 @@ replaced by the same value. Within `replaceRegex`, capture groups can be referen
 [`replace`]: /docs/filters.md#replace
 [`replaceRegex`]: /docs/filters.md#replaceregex
 [templates]: /docs/templates.md
+[`--body-hook` option]: /docs/manual.md#body-hook
 [XML]: https://en.wikipedia.org/wiki/XML
 [Base64]: https://en.wikipedia.org/wiki/Base64
 [hexadecimal string]: #hex-body

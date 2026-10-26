@@ -74,6 +74,11 @@ pub enum RunnerErrorKind {
     },
     /// The user tries to output binaries data to standard output.
     BinaryOutput,
+    /// The `--body-hook` command failed (can't be spawned, or exited with a non-zero status).
+    BodyHook {
+        command: String,
+        message: String,
+    },
     ExpressionInvalidType {
         value: String,
         expecting: String,
@@ -158,6 +163,7 @@ impl DisplaySourceError for RunnerError {
             RunnerErrorKind::AssertStatus { .. } => "Assert status code".to_string(),
             RunnerErrorKind::AssertVersion { .. } => "Assert HTTP version".to_string(),
             RunnerErrorKind::BinaryOutput => "Binary output".to_string(),
+            RunnerErrorKind::BodyHook { .. } => "Body hook".to_string(),
             RunnerErrorKind::ExpressionInvalidType { .. } => "Invalid expression type".to_string(),
             RunnerErrorKind::FileReadAccess { .. } => "File read access".to_string(),
             RunnerErrorKind::FileWriteAccess { .. } => "File write access".to_string(),
@@ -239,6 +245,11 @@ impl DisplaySourceError for RunnerError {
             }
             RunnerErrorKind::AssertVersion { actual, .. } => {
                 let message = &format!("actual value is <{actual}>");
+                let message = error::add_carets(message, self.source_info, content);
+                color_red_multiline_string(&message)
+            }
+            RunnerErrorKind::BodyHook { command, message } => {
+                let message = &format!("body hook <{command}> failed: {message}");
                 let message = error::add_carets(message, self.source_info, content);
                 color_red_multiline_string(&message)
             }

@@ -25,6 +25,7 @@ use crate::http::{ClientOptions, CurlCmd};
 use crate::util::logger::{Logger, Verbosity};
 use crate::util::term::WriteMode;
 
+use super::body_hook;
 use super::cache::BodyCache;
 use super::error::{RunnerError, RunnerErrorKind};
 use super::query::QueryOptions;
@@ -76,7 +77,7 @@ pub fn run(
     }
 
     // Evaluates our source requests given our set of variables
-    let http_request = match request::eval_request(&entry.request, variables, context_dir) {
+    let mut http_request = match request::eval_request(&entry.request, variables, context_dir) {
         Ok(r) => r,
         Err(error) => {
             return EntryResult {
@@ -88,6 +89,27 @@ pub fn run(
             };
         }
     };
+
+    // Transforms the rendered body with an external command (for instance, to sign it).
+    if let Some(command) = &runner_options.body_hook
+        && entry.request.body.is_some()
+    {
+        logger.debug(&format!("Running body hook: {command}"));
+        if let Err(message) = body_hook::run_body_hook(command, &mut http_request) {
+            let kind = RunnerErrorKind::BodyHook {
+                command: command.clone(),
+                message,
+            };
+            let error = RunnerError::new(entry.request.url.source_info, kind, false);
+            return EntryResult {
+                entry_index,
+                source_info,
+                errors: vec![error],
+                compressed,
+                ..Default::default()
+            };
+        }
+    }
 
     let client_options = ClientOptions::from(runner_options, logger.verbosity);
 
