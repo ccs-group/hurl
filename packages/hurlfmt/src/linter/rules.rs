@@ -16,7 +16,7 @@
  *
  */
 use hurl_core::ast::{
-    Assert, Base64, Body, Bytes, Capture, Comment, Cookie, CookieAttribute, CookieAttributeName,
+    Assert, Base64, Body, BodyReplacement, Bytes, Capture, Comment, Cookie, CookieAttribute, CookieAttributeName,
     CookiePath, DurationOption, Entry, EntryOption, File, FilenameParam, Filter, FilterValue,
     GraphQl, Hex, HurlFile, KeyValue, LineTerminator, MultilineString, MultilineStringAttribute,
     MultilineStringKind, MultipartParam, OptionKind, Predicate, PredicateFunc, PredicateFuncValue,
@@ -456,11 +456,22 @@ fn lint_body(body: &Body) -> Body {
     let space0 = empty_whitespace();
     let value = lint_bytes(&body.value);
     let line_terminator0 = body.line_terminator0.clone();
+    let replacements = body
+        .replacements
+        .iter()
+        .map(|r| BodyReplacement {
+            line_terminators: r.line_terminators.clone(),
+            space0: empty_whitespace(),
+            filter: lint_filter(&r.filter),
+            line_terminator0: lint_line_terminator(&r.line_terminator0),
+        })
+        .collect();
     Body {
         line_terminators,
         space0,
         value,
         line_terminator0,
+        replacements,
     }
 }
 

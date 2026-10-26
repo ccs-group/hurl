@@ -278,6 +278,14 @@ pub fn walk_body<V: Visitor>(visitor: &mut V, body: &Body) {
         Bytes::Hex(value) => visitor.visit_hex(value),
     }
     visitor.visit_lt(&body.line_terminator0);
+    for replacement in &body.replacements {
+        replacement.line_terminators.iter().for_each(|lt| {
+            visitor.visit_lt(lt);
+        });
+        visitor.visit_whitespace(&replacement.space0);
+        visitor.visit_filter(&replacement.filter);
+        visitor.visit_lt(&replacement.line_terminator0);
+    }
 }
 
 pub fn walk_bool_option<V: Visitor>(visitor: &mut V, option: &BooleanOption) {

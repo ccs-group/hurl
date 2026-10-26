@@ -78,6 +78,14 @@ impl Lint for Body {
             .for_each(|lt| s.push_str(&lint_lt(lt, false)));
         s.push_str(&self.value.lint());
         s.push_str(&lint_lt(&self.line_terminator0, true));
+        for replacement in &self.replacements {
+            replacement
+                .line_terminators
+                .iter()
+                .for_each(|lt| s.push_str(&lint_lt(lt, false)));
+            s.push_str(&replacement.filter.value.lint());
+            s.push_str(&lint_lt(&replacement.line_terminator0, true));
+        }
         s
     }
 }

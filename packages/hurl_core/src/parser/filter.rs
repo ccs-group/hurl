@@ -109,6 +109,18 @@ pub fn filter(reader: &mut Reader) -> ParseResult<Filter> {
     Ok(Filter { source_info, value })
 }
 
+/// Parses a `replace` or `replaceRegex` filter, used to modify a file body.
+pub fn replace_filters(reader: &mut Reader) -> ParseResult<Filter> {
+    let start = reader.cursor();
+    let value = choice(&[replace_regex_filter, replace_filter], reader)?;
+    let end = reader.cursor();
+    let source_info = SourceInfo {
+        start: start.pos,
+        end: end.pos,
+    };
+    Ok(Filter { source_info, value })
+}
+
 fn base64_decode_filter(reader: &mut Reader) -> ParseResult<FilterValue> {
     try_literal("base64Decode", reader)?;
     Ok(FilterValue::Base64Decode)

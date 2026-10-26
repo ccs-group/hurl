@@ -17,8 +17,8 @@
  */
 use crate::ast::VersionValue::VersionAny;
 use crate::ast::{
-    Body, Entry, HurlFile, Method, Request, Response, Section, SourceInfo, Status, StatusValue,
-    Version, VersionValue,
+    Body, BodyReplacement, Bytes, Entry, HurlFile, Method, Request, Response, Section, SourceInfo,
+    Status, StatusValue, Version, VersionValue,
 };
 use crate::combinator::{optional, zero_or_more};
 use crate::reader::Reader;
@@ -26,6 +26,7 @@ use crate::reader::Reader;
 use super::ParseResult;
 use super::bytes::bytes;
 use super::error::{ParseError, ParseErrorKind};
+use super::filter::replace_filters;
 use super::primitives::{
     eof, key_value, line_terminator, one_or_more_spaces, optional_line_terminators, try_literal,
     zero_or_more_spaces,
@@ -210,10 +211,29 @@ fn body(reader: &mut Reader) -> ParseResult<Body> {
     let space0 = zero_or_more_spaces(reader)?;
     let value = bytes(reader)?;
     let line_terminator0 = line_terminator(reader)?;
+    let replacements = if matches!(value, Bytes::File(_)) {
+        zero_or_more(body_replacement, reader)?
+    } else {
+        vec![]
+    };
     Ok(Body {
         line_terminators,
         space0,
         value,
+        line_terminator0,
+        replacements,
+    })
+}
+
+fn body_replacement(reader: &mut Reader) -> ParseResult<BodyReplacement> {
+    let line_terminators = optional_line_terminators(reader)?;
+    let space0 = zero_or_more_spaces(reader)?;
+    let filter = replace_filters(reader)?;
+    let line_terminator0 = line_terminator(reader)?;
+    Ok(BodyReplacement {
+        line_terminators,
+        space0,
+        filter,
         line_terminator0,
     })
 }
@@ -222,7 +242,7 @@ fn body(reader: &mut Reader) -> ParseResult<Body> {
 mod tests {
     use super::*;
     use crate::ast::{
-        Bytes, Comment, JsonListElement, JsonValue, LineTerminator, MultilineString,
+        Bytes, Comment, FilterValue, JsonListElement, JsonValue, LineTerminator, MultilineString,
         MultilineStringKind, Template, TemplateElement, Whitespace,
     };
     use crate::reader::{CharPos, Pos};
@@ -415,6 +435,7 @@ mod tests {
                         source_info: SourceInfo::new(Pos::new(4, 4), Pos::new(4, 4)),
                     },
                 },
+                replacements: vec![],
             }
         );
     }
@@ -600,6 +621,35 @@ mod tests {
         let mut reader = Reader::new("{x");
         let error = body(&mut reader).err().unwrap();
         assert_eq!(error.pos, Pos { line: 1, column: 2 });
+        assert!(!error.recoverable);
+    }
+
+    #[test]
+    fn test_body_file_replacements() {
+        let mut reader = Reader::new(
+            "file,data.xml;\nreplace \"foo\" \"bar\"\n# comment\nreplaceRegex /<a>.*<\\/a>/ \"<a>{{randomString 8}}</a>\"\nHTTP 200",
+        );
+        let b = body(&mut reader).unwrap();
+        assert_eq!(b.replacements.len(), 2);
+        assert!(matches!(
+            b.replacements[0].filter.value,
+            FilterValue::Replace { .. }
+        ));
+        assert_eq!(b.replacements[1].line_terminators.len(), 1);
+        assert!(matches!(
+            b.replacements[1].filter.value,
+            FilterValue::ReplaceRegex { .. }
+        ));
+        assert_eq!(reader.cursor().pos, Pos::new(5, 1));
+
+        // Replacements are only parsed after a file body.
+        let mut reader = Reader::new("`foo`\nreplace \"foo\" \"bar\"");
+        let b = body(&mut reader).unwrap();
+        assert!(b.replacements.is_empty());
+        assert_eq!(reader.cursor().pos, Pos::new(2, 1));
+
+        let mut reader = Reader::new("file,data.xml;\nreplace \"foo\"\n");
+        let error = body(&mut reader).err().unwrap();
         assert!(!error.recoverable);
     }
 }

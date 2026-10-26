@@ -37,6 +37,11 @@ header:
 body:
   lt*
   bytes lt
+  body-replacement*
+
+body-replacement:
+  lt*
+  (replace-filter | replace-regex-filter) lt
 
 
 # Sections

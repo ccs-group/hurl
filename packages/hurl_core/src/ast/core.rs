@@ -258,6 +258,24 @@ pub struct Body {
     pub space0: Whitespace,
     pub value: Bytes,
     pub line_terminator0: LineTerminator,
+    /// Text replacements applied to a file body (only allowed after a `file,...;` body).
+    pub replacements: Vec<BodyReplacement>,
+}
+
+/// A replacement line following a file body, for instance:
+///
+/// ```hurl
+/// file,data.xml;
+/// replaceRegex /<Id>.*<\/Id>/ "<Id>{{randomString 28}}</Id>"
+/// ```
+///
+/// `filter` is always a [`FilterValue::Replace`] or [`FilterValue::ReplaceRegex`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BodyReplacement {
+    pub line_terminators: Vec<LineTerminator>,
+    pub space0: Whitespace,
+    pub filter: Filter,
+    pub line_terminator0: LineTerminator,
 }
 
 /// Check that variable name is not reserved

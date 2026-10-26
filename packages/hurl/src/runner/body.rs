@@ -17,7 +17,7 @@
  */
 use std::path::PathBuf;
 
-use hurl_core::ast::{Base64, Body, Bytes, File, Hex, Template};
+use hurl_core::ast::{Base64, Body, Bytes, File, Filter, FilterValue, Hex, Template};
 
 use crate::http;
 use crate::util::path::ContextDir;
@@ -25,6 +25,7 @@ use crate::util::path::ContextDir;
 use super::error::{RunnerError, RunnerErrorKind};
 use super::json::eval_json_value;
 use super::multiline::eval_multiline;
+use super::regex::eval_regex_value;
 use super::template::eval_template;
 use super::variable::VariableSet;
 
@@ -33,7 +34,78 @@ pub fn eval_body(
     variables: &VariableSet,
     context_dir: &ContextDir,
 ) -> Result<http::Body, RunnerError> {
-    eval_bytes(&body.value, variables, context_dir)
+    let value = eval_bytes(&body.value, variables, context_dir)?;
+    if body.replacements.is_empty() {
+        return Ok(value);
+    }
+    let mut bytes = value.bytes().to_vec();
+    for replacement in &body.replacements {
+        bytes = eval_replacement(&bytes, &replacement.filter, variables)?;
+    }
+    match String::from_utf8(bytes) {
+        Ok(text) => Ok(http::Body::Text(text)),
+        Err(e) => Ok(http::Body::Binary(e.into_bytes())),
+    }
+}
+
+/// Applies a `replace` or `replaceRegex` filter to a file body content.
+///
+/// Templates are evaluated once per replacement, so a generated value (like `{{randomString 8}}`)
+/// is identical for every match of a given replacement.
+fn eval_replacement(
+    bytes: &[u8],
+    filter: &Filter,
+    variables: &VariableSet,
+) -> Result<Vec<u8>, RunnerError> {
+    match &filter.value {
+        FilterValue::Replace {
+            old_value,
+            new_value,
+            ..
+        } => {
+            let old_value = eval_template(old_value, variables)?;
+            let new_value = eval_template(new_value, variables)?;
+            Ok(replace_bytes(
+                bytes,
+                old_value.as_bytes(),
+                new_value.as_bytes(),
+            ))
+        }
+        FilterValue::ReplaceRegex {
+            pattern, new_value, ..
+        } => {
+            let re = eval_regex_value(pattern, variables)?;
+            let re = match regex::bytes::Regex::new(re.as_str()) {
+                Ok(re) => re,
+                Err(_) => {
+                    let kind = RunnerErrorKind::InvalidRegex;
+                    return Err(RunnerError::new(filter.source_info, kind, false));
+                }
+            };
+            let new_value = eval_template(new_value, variables)?;
+            Ok(re.replace_all(bytes, new_value.as_bytes()).into_owned())
+        }
+        // The parser only accepts `replace` and `replaceRegex` filters after a file body.
+        _ => unreachable!("unsupported body replacement filter"),
+    }
+}
+
+fn replace_bytes(bytes: &[u8], old_value: &[u8], new_value: &[u8]) -> Vec<u8> {
+    if old_value.is_empty() {
+        return bytes.to_vec();
+    }
+    let mut result = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i..].starts_with(old_value) {
+            result.extend_from_slice(new_value);
+            i += old_value.len();
+        } else {
+            result.push(bytes[i]);
+            i += 1;
+        }
+    }
+    result
 }
 
 pub fn eval_bytes(
@@ -166,5 +238,58 @@ mod tests {
             error.source_info,
             SourceInfo::new(Pos::new(1, 7), Pos::new(1, 15))
         );
+    }
+
+    fn eval_request_body(content: &str) -> Result<http::Body, RunnerError> {
+        let hurl_file = hurl_core::parser::parse_hurl_file(content).unwrap();
+        let body = hurl_file.entries[0].request.body.as_ref().unwrap();
+        let mut variables = VariableSet::new();
+        variables.insert(
+            "name".to_string(),
+            crate::runner::Value::String("Bob".to_string()),
+        );
+        let current_dir = Path::new("/my_home");
+        let file_root = Path::new("");
+        let context_dir = ContextDir::new(current_dir, file_root);
+        eval_body(body, &variables, &context_dir)
+    }
+
+    #[test]
+    fn test_body_file_replacements() {
+        let body = eval_request_body(
+            "POST http://localhost\nfile,tests/hello.txt;\nreplace \"Hello\" \"Hi\"\n# comment\nreplaceRegex /W(or)ld/ \"{{name}} $1\"\n",
+        )
+        .unwrap();
+        assert_eq!(body, http::Body::Text("Hi Bob or!".to_string()));
+
+        let body = eval_request_body(
+            "POST http://localhost\nfile,tests/hello.txt;\nreplaceRegex /World/ \"{{randomString 8}}\"\n",
+        )
+        .unwrap();
+        let http::Body::Text(text) = body else {
+            panic!("expected text body");
+        };
+        assert!(text.starts_with("Hello "));
+        assert_eq!(text.len(), "Hello ".len() + 8 + 1);
+    }
+
+    #[test]
+    fn test_body_file_replacement_invalid_regex() {
+        let error = eval_request_body(
+            "POST http://localhost\nfile,tests/hello.txt;\nreplaceRegex \"(\" \"x\"\n",
+        )
+        .err()
+        .unwrap();
+        assert_eq!(error.kind, RunnerErrorKind::InvalidRegex);
+    }
+
+    #[test]
+    fn test_replace_bytes() {
+        assert_eq!(replace_bytes(b"aXbXc", b"X", b"--"), b"a--b--c".to_vec());
+        assert_eq!(
+            replace_bytes(b"\x00\xffab", b"ab", b"c"),
+            b"\x00\xffc".to_vec()
+        );
+        assert_eq!(replace_bytes(b"abc", b"", b"x"), b"abc".to_vec());
     }
 }

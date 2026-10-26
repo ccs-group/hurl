@@ -715,6 +715,23 @@ file,data.bin;
 File are relative to the input Hurl file, and cannot contain implicit parent directory (`..`). You can use  
 [`--file-root` option] to specify the root directory of all file nodes.
 
+The content of a file body can be modified before being sent, with one or more `replace` and `replaceRegex`
+lines following the file body. These lines have the same syntax as the [`replace`] and [`replaceRegex`] filters,
+and their replacement values are [templates], so you can use variables and functions (like `randomString`, `newUuid`
+etc...):
+
+```hurl
+POST https://example.org/v1/authorisation-request
+Content-Type: application/xml
+file,request.xml;
+replaceRegex /<SaleId>.*<\/SaleId>/ "<SaleId>sal_{{randomString 28}}</SaleId>"
+replaceRegex /<Name>.*<\/Name>/ "<Name>{{randomFirstName}}</Name>"
+replace "EUR" "{{currency}}"
+```
+
+Replacements are applied in order. The replacement value is evaluated once per line, so every match of a given line is
+replaced by the same value. Within `replaceRegex`, capture groups can be referenced with `$1`, `$2` etc...
+
 [method]: #method
 [URL]: #url
 [headers]: #headers
@@ -733,6 +750,9 @@ File are relative to the input Hurl file, and cannot contain implicit parent dir
 [multipart/form-data on MDN]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST
 [`--file-root` option]: /docs/manual.md#file-root
 [JSON]: https://www.json.org
+[`replace`]: /docs/filters.md#replace
+[`replaceRegex`]: /docs/filters.md#replaceregex
+[templates]: /docs/templates.md
 [XML]: https://en.wikipedia.org/wiki/XML
 [Base64]: https://en.wikipedia.org/wiki/Base64
 [hexadecimal string]: #hex-body

@@ -149,7 +149,23 @@ fn add_headers(attributes: &mut Vec<(String, JValue)>, headers: &[KeyValue]) {
 
 impl ToJson for Body {
     fn to_json(&self) -> JValue {
-        self.value.to_json()
+        let value = self.value.to_json();
+        if self.replacements.is_empty() {
+            return value;
+        }
+        let replacements = JValue::List(
+            self.replacements
+                .iter()
+                .map(|r| r.filter.to_json())
+                .collect(),
+        );
+        match value {
+            JValue::Object(mut attributes) => {
+                attributes.push(("replacements".to_string(), replacements));
+                JValue::Object(attributes)
+            }
+            value => value,
+        }
     }
 }
 
