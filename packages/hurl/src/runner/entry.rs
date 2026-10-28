@@ -92,7 +92,9 @@ pub fn run(
 
     // Transforms the rendered body with an external command (for instance, to sign it).
     if let Some(command) = &runner_options.body_hook
-        && entry.request.body.is_some()
+        && (entry.request.body.is_some()
+            || !http_request.form.is_empty()
+            || !http_request.multipart.is_empty())
     {
         logger.debug(&format!("Running body hook: {command}"));
         if let Err(message) = body_hook::run_body_hook(command, &mut http_request) {
