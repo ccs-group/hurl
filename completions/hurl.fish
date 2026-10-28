@@ -1,4 +1,5 @@
 complete -c hurl -l aws-sigv4 -d 'Use AWS V4 signature authentication in the transfer'
+complete -c hurl -l body-hook -d 'Run COMMAND to transform each request body before it is sent'
 complete -c hurl -l cacert -d 'CA certificate to verify peer against (PEM format)'
 complete -c hurl -l cert -d 'Client certificate file and password'
 complete -c hurl -l key -d 'Private key file name'

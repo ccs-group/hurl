@@ -504,7 +504,7 @@ dependencies = [
 
 [[package]]
 name = "hurl"
-version = "8.1.0"
+version = "8.2.0"
 dependencies = [
  "base64",
  "brotli",
@@ -536,7 +536,7 @@ dependencies = [
 
 [[package]]
 name = "hurl_core"
-version = "8.1.0"
+version = "8.2.0"
 dependencies = [
  "colored",
  "libxml",
@@ -545,7 +545,7 @@ dependencies = [
 
 [[package]]
 name = "hurlfmt"
-version = "8.1.0"
+version = "8.2.0"
 dependencies = [
  "base64",
  "clap",

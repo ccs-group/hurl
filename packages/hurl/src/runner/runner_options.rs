@@ -29,6 +29,7 @@ use super::output::Output;
 pub struct RunnerOptionsBuilder {
     allow_reuse: bool,
     aws_sigv4: Option<String>,
+    body_hook: Option<String>,
     cacert_file: Option<String>,
     client_cert_file: Option<String>,
     client_key_file: Option<String>,
@@ -88,6 +89,7 @@ impl Default for RunnerOptionsBuilder {
         RunnerOptionsBuilder {
             allow_reuse: true,
             aws_sigv4: None,
+            body_hook: None,
             cacert_file: None,
             client_cert_file: None,
             client_key_file: None,
@@ -164,6 +166,15 @@ impl RunnerOptionsBuilder {
     /// Specifies the AWS SigV4 option
     pub fn aws_sigv4(&mut self, aws_sigv4: Option<String>) -> &mut Self {
         self.aws_sigv4 = aws_sigv4;
+        self
+    }
+
+    /// Sets a shell command used to transform each request body before it is sent.
+    ///
+    /// The rendered body is written to the command standard input, and the command standard output
+    /// is used as the new request body.
+    pub fn body_hook(&mut self, body_hook: Option<String>) -> &mut Self {
+        self.body_hook = body_hook;
         self
     }
 
@@ -519,6 +530,7 @@ impl RunnerOptionsBuilder {
         RunnerOptions {
             allow_reuse: self.allow_reuse,
             aws_sigv4: self.aws_sigv4.clone(),
+            body_hook: self.body_hook.clone(),
             cacert_file: self.cacert_file.clone(),
             client_cert_file: self.client_cert_file.clone(),
             client_key_file: self.client_key_file.clone(),
@@ -585,6 +597,8 @@ pub struct RunnerOptions {
     pub(crate) allow_reuse: bool,
     /// Specifies the AWS SigV4 option.
     pub(crate) aws_sigv4: Option<String>,
+    /// Shell command used to transform each request body before it is sent.
+    pub(crate) body_hook: Option<String>,
     /// Specifies the certificate file for peer verification.
     pub(crate) cacert_file: Option<String>,
     /// Sets Client certificate file and password.

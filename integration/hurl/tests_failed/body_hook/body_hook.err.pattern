@@ -1,0 +1,7 @@
+error: Body hook
+  --> tests_failed/body_hook/body_hook.hurl:1:6
+   |
+ 1 | POST http://localhost:8000/unused
+   |      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ body hook <<<<.*>>>> failed: exit code 3 (invalid key)
+   |
+

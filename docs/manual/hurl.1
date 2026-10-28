@@ -1,4 +1,4 @@
-.TH hurl 1 "25 Oct 2026" "hurl 8.1.0" " Hurl Manual"
+.TH hurl 1 "26 Oct 2026" "hurl 8.2.0" " Hurl Manual"
 .SH NAME
 
 hurl - run and test HTTP requests.
@@ -527,6 +527,21 @@ In contrast to  \fI--verbose\fP option, this option outputs the full HTTP body r
 Environment variables: HURL_VERY_VERBOSE
 
 .SS "Run options"
+
+.IP "--body-hook <COMMAND> "
+
+Run COMMAND to transform each request body before it is sent. COMMAND is run through the system shell (`sh -c` on Unix, `cmd /C` on Windows)
+for every request that has a body, after all templates, functions and file replacements have been evaluated. The rendered body is written
+to COMMAND standard input, and COMMAND standard output is used as the new request body. The request method and URL are available to COMMAND
+through `HURL_REQUEST_METHOD` and `HURL_REQUEST_URL` environment variables.
+
+If COMMAND exits with a non-zero status, the entry fails and COMMAND standard error is displayed.
+
+This can be used, for instance, to sign a request body containing dynamic values:
+
+    $ hurl --body-hook './sign.sh' test.hurl
+
+This is a cli-only option.
 
 .IP "--continue-on-error "
 
